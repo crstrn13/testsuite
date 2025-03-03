@@ -15,7 +15,6 @@ from testsuite.kuadrant.policy.authorization import (
     Cache,
     ResourceAttributes,
 )
-from testsuite.oidc.keycloak import Keycloak
 from testsuite.utils import asdict
 from testsuite.kubernetes import modify, Selector
 
@@ -175,12 +174,13 @@ class IdentitySection(Section):
 
     @modify
     def add_oauth2_introspection(self, keycloak, client_secret):
+        """Add introspection for tokens with keycloak and client credentials stored in secret"""
         self.add_item(
             "default",
             {
                 "oauth2Introspection": {
                     "endpoint": f"{keycloak.server_url}/realms/{keycloak.realm_name}/protocol/openid-connect/token/"
-                                f"introspect",
+                    f"introspect",
                     "tokenTypeHint": "requesting_party_token",
                     "credentialsRef": {"name": client_secret.name()},
                 }
