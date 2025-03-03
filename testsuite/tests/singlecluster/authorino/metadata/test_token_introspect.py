@@ -21,17 +21,7 @@ def authorization(client_secret, authorization, keycloak):
     On every request, Authorino will try to verify the token remotely with the Keycloak server with the introspect
     endpoint. It's credentials are referenced from the secret created before.
     """
-    authorization.identity.add_item(
-        "default",
-        {
-            "oauth2Introspection": {
-                "endpoint": f"{keycloak.server_url}/realms/{keycloak.realm_name}/protocol/openid-connect/token/"
-                f"introspect",
-                "tokenTypeHint": "requesting_party_token",
-                "credentialsRef": {"name": client_secret.name()},
-            }
-        },
-    )
+    authorization.identity.add_oauth2_introspection(keycloak, client_secret)
     return authorization
 
 
