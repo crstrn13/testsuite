@@ -22,7 +22,7 @@ def authorization(client_secret, authorization, keycloak):
     endpoint. It's credentials are referenced from the secret created before.
     """
     authorization.identity.add_item(
-        "keycloak",
+        "default",
         {
             "oauth2Introspection": {
                 "endpoint": f"{keycloak.server_url}/realms/{keycloak.realm_name}/protocol/openid-connect/token/"
@@ -35,7 +35,7 @@ def authorization(client_secret, authorization, keycloak):
     return authorization
 
 
-def test_no_token(client):
+def test_no_token(client, authorization):
     """Test access with no auth"""
     response = client.get("get")
     assert response.status_code == 401
