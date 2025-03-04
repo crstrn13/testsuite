@@ -45,7 +45,7 @@ def authorization(authorization, oidc_provider, route, authorization_name, clust
     return authorization
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def auth(oidc_provider):
     """Returns authentication object for HTTPX"""
     return HttpxOidcClientAuth(oidc_provider.get_token, "authorization")

@@ -9,7 +9,7 @@ import pytest
 pytestmark = [pytest.mark.authorino]
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def client_secret(create_client_secret, keycloak, blame):
     """create the required secrets that will be used by Authorino to authenticate with Keycloak"""
     return create_client_secret(blame("secret"), keycloak.client.auth_id, keycloak.client.secret)
@@ -21,7 +21,7 @@ def authorization(client_secret, authorization, keycloak):
     On every request, Authorino will try to verify the token remotely with the Keycloak server with the introspect
     endpoint. It's credentials are referenced from the secret created before.
     """
-    authorization.identity.add_oauth2_introspection(keycloak, client_secret)
+    authorization.identity.add_oauth2_introspection("default", keycloak, client_secret)
     return authorization
 
 
