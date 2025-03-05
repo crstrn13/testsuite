@@ -6,6 +6,8 @@ https://github.com/Kuadrant/authorino/blob/main/docs/user-guides/oauth2-token-in
 
 import pytest
 
+from testsuite.httpx.auth import HttpxOidcClientAuth
+
 pytestmark = [pytest.mark.authorino]
 
 
@@ -13,6 +15,11 @@ pytestmark = [pytest.mark.authorino]
 def client_secret(create_client_secret, keycloak, blame):
     """create the required secrets that will be used by Authorino to authenticate with Keycloak"""
     return create_client_secret(blame("secret"), keycloak.client.auth_id, keycloak.client.secret)
+
+
+@pytest.fixture(scope="function")
+def _auth(oidc_provider):
+    return HttpxOidcClientAuth(oidc_provider.get_token, "authorization")
 
 
 @pytest.fixture(scope="module")
@@ -31,14 +38,14 @@ def test_no_token(client):
     assert response.status_code == 401
 
 
-def test_access_token(client, auth):
+def test_access_token(client, _auth):
     """Tests auth with token granted from fixture"""
-    response = client.get("get", auth=auth)
+    response = client.get("get", auth=_auth)
     assert response.status_code == 200
 
 
-def test_revoked_token(client, auth, keycloak):
+def test_revoked_token(client, _auth, keycloak):
     """Revoke token by logging out and test if is unauthorized"""
-    keycloak.oidc_client.logout(auth.token.refresh_token)
-    response = client.get("get", auth=auth)
+    keycloak.oidc_client.logout(_auth.token.refresh_token)
+    response = client.get("get", auth=_auth)
     assert response.status_code == 401
