@@ -25,7 +25,7 @@ def authorization(client_secret, authorization, keycloak):
     return authorization
 
 
-def test_no_token(client, auth):  # pylint: disable=W0613
+def test_no_token(client):
     """Test access with no auth"""
     response = client.get("get")
     assert response.status_code == 401
