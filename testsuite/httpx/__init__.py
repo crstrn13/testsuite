@@ -1,11 +1,13 @@
 """Common classes for Httpx"""
-
+import logging
 import typing
 
 # I change return type of HTTPX client to Kuadrant Result
 # mypy: disable-error-code="override, return-value"
 from tempfile import NamedTemporaryFile
 from typing import Union, Iterable
+
+logger = logging.getLogger(__name__)
 
 import backoff
 from httpx import Client, RequestError, USE_CLIENT_DEFAULT, Request
@@ -45,9 +47,16 @@ class Result:
 
     def should_backoff(self):
         """True, if the Result can be considered an instability and should be retried"""
+        def backoff_on_retry_code():
+            if self.error is None and self.status_code in self.retry_codes:
+                logger.warning(f"Retrying because of status code: {self.status_code}")
+                return True
+            return False
+
+
         return (
             self.has_dns_error()
-            or (self.error is None and self.status_code in self.retry_codes)
+            or backoff_on_retry_code()
             or self.has_error("Server disconnected without sending a response.")
             or self.has_error("timed out")
             or self.has_error("SSL: UNEXPECTED_EOF_WHILE_READING")
@@ -113,7 +122,7 @@ class KuadrantClient(Client):
         **kwargs,
     ):
         self.files = []
-        self.retry_codes = retry_codes or {503}
+        self.retry_codes = retry_codes or {503, 500}
         _verify = None
         if isinstance(verify, Certificate):
             verify_file = create_tmp_file(verify.chain)
