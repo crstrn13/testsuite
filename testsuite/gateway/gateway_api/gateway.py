@@ -142,3 +142,8 @@ class KuadrantGateway(KubernetesObject, Gateway):
             "kind": "Gateway",
             "name": self.name(),
         }
+
+    @property
+    def deployment(self):
+        """Retrieve the managed deployment resource"""
+        return self.cluster.get_deployment(self.service_name)
