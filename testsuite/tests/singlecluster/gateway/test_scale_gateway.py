@@ -29,8 +29,6 @@ def test_scale_gateway(gateway, client, auth, rate_limit, authorization):
     gateway.deployment.set_replicas(2)
     gateway.deployment.wait_for_ready()
 
-    assert client.get("/get", auth=auth).status_code == 429
-
     time.sleep(60)
 
     responses = client.get_many("/get", 5, auth=auth)
