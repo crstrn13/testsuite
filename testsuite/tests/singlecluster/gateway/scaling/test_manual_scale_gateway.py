@@ -1,5 +1,5 @@
 """
-This module contains tests for scaling the gateway deployment
+This module contains tests for scaling the gateway deployment by manually increasing the replicas in the deployment spec
 """
 
 import time
