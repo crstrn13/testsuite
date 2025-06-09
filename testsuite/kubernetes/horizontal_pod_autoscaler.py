@@ -12,6 +12,7 @@ class HorizontalPodAutoscaler(KubernetesObject):
         name,
         deployment: Deployment,
         metric: list[dict],
+        labels: dict[str, str] = None,
         min_replicas: int = 1,
         max_replicas: int = 10,
     ):

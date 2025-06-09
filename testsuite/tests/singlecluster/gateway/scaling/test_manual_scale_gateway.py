@@ -13,7 +13,7 @@ from testsuite.kuadrant.policy.rate_limit import RateLimitPolicy, Limit
 @pytest.fixture(scope="module")
 def rate_limit(blame, gateway, module_label, cluster):
     """Add limit to the policy"""
-    policy = RateLimitPolicy.create_instance(cluster, blame("authz"), gateway, labels={"app": module_label})
+    policy = RateLimitPolicy.create_instance(cluster, blame("rlp"), gateway, labels={"app": module_label})
     policy.add_limit("basic", [Limit(5, "60s")], counters=[CelExpression("auth.identity.user")])
     return policy
 

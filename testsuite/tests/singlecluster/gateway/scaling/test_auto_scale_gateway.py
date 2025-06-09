@@ -10,17 +10,26 @@ from testsuite.kuadrant.policy import CelExpression
 from testsuite.kuadrant.policy.rate_limit import RateLimitPolicy, Limit
 from testsuite.kubernetes.horizontal_pod_autoscaler import HorizontalPodAutoscaler
 
+@pytest.fixture(scope="module", autouse=True)
+def commit(request, authorization, rate_limit, dns_policy, tls_policy, hpa):
+    """Commits all important stuff before tests"""
+    for component in [dns_policy, tls_policy, authorization, ]:
+        if component is not None:
+            request.addfinalizer(component.delete)
+            component.commit()
+            component.wait_for_ready()
 
 @pytest.fixture(scope="module")
-def hpa(cluster, gateway):
+def hpa(cluster, blame, gateway):
     """Add hpa to the gateway deployment"""
-    HorizontalPodAutoscaler.create_instance(cluster)
+    return HorizontalPodAutoscaler.create_instance(cluster, blame("hpa"), gateway.deployment,
+[{"type": "Resource", "resource": {"name": "cpu", "target": {"type": "Utilization", "averageUtilization": 50}}}])
 
 @pytest.fixture(scope="module")
 def rate_limit(blame, gateway, module_label, cluster):
     """Add limit to the policy"""
     policy = RateLimitPolicy.create_instance(cluster, blame("authz"), gateway, labels={"app": module_label})
-    policy.add_limit("basic", [Limit(5, "60s")], counters=[CelExpression("auth.identity.user")])
+    policy.add_limit("basic", [Limit(5, "60s")], when=[CelExpression("auth.identity.user")])
     return policy
 
 
