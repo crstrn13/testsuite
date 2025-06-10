@@ -11,7 +11,7 @@ class HorizontalPodAutoscaler(KubernetesObject):
         cluster,
         name,
         deployment: Deployment,
-        metric: list[dict],
+        metrics: list[dict],
         labels: dict[str, str] = None,
         min_replicas: int = 1,
         max_replicas: int = 10,
@@ -21,6 +21,7 @@ class HorizontalPodAutoscaler(KubernetesObject):
             "apiVersion": "autoscaling/v2",
             "metadata": {
                 "name": name,
+                "labels": labels,
             },
             "spec": {
                 "scaleTargetRef": {
@@ -30,8 +31,8 @@ class HorizontalPodAutoscaler(KubernetesObject):
                 },
                 "minReplicas": min_replicas,
                 "maxReplicas": max_replicas,
+                "metrics": metrics
             },
-            "metrics": metric
         }
         return cls(model, context=cluster.context)
 

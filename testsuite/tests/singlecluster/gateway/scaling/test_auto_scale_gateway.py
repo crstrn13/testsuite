@@ -11,30 +11,37 @@ from testsuite.kuadrant.policy.rate_limit import RateLimitPolicy, Limit
 from testsuite.kubernetes.horizontal_pod_autoscaler import HorizontalPodAutoscaler
 
 @pytest.fixture(scope="module", autouse=True)
-def commit(request, authorization, rate_limit, dns_policy, tls_policy, hpa):
+def commit(request, authorization, rate_limit, dns_policy, tls_policy):
     """Commits all important stuff before tests"""
-    for component in [dns_policy, tls_policy, authorization, ]:
+    for component in [dns_policy, tls_policy, authorization, rate_limit]:
         if component is not None:
             request.addfinalizer(component.delete)
             component.commit()
             component.wait_for_ready()
 
 @pytest.fixture(scope="module")
-def hpa(cluster, blame, gateway):
+def hpa(request, cluster, blame, gateway):
     """Add hpa to the gateway deployment"""
-    return HorizontalPodAutoscaler.create_instance(cluster, blame("hpa"), gateway.deployment,
+    hpa = HorizontalPodAutoscaler.create_instance(cluster, blame("hpa"), gateway.deployment,
 [{"type": "Resource", "resource": {"name": "cpu", "target": {"type": "Utilization", "averageUtilization": 50}}}])
+    request.addfinalizer(hpa.delete)
+    hpa.commit()
+
+
+@pytest.fixture(scope="module")
+def load_generator(backend):
+    load_generator =
 
 @pytest.fixture(scope="module")
 def rate_limit(blame, gateway, module_label, cluster):
     """Add limit to the policy"""
-    policy = RateLimitPolicy.create_instance(cluster, blame("authz"), gateway, labels={"app": module_label})
-    policy.add_limit("basic", [Limit(5, "60s")], when=[CelExpression("auth.identity.user")])
+    policy = RateLimitPolicy.create_instance(cluster, blame("rlp"), gateway, labels={"app": module_label})
+    policy.add_limit("basic", [Limit(5, "60s")], counters=[CelExpression("auth.identity.user")])
     return policy
 
 
 # pylint: disable=unused-argument
-def test_scale_gateway(gateway, client, auth, rate_limit, authorization):
+def test_scale_gateway(gateway, client, auth, rate_limit, authorization, hpa):
     """This test asserts that the policies are working as expected and this behavior does not change after scaling"""
     responses = client.get_many("/get", 5, auth=auth)
     responses.assert_all(status_code=200)
