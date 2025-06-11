@@ -11,6 +11,7 @@ from testsuite.gateway import Gateway, GatewayListener
 from testsuite.kubernetes.client import KubernetesClient
 from testsuite.kubernetes import KubernetesObject, modify
 from testsuite.kuadrant.policy import Policy
+from testsuite.kubernetes.deployment import Deployment
 from testsuite.utils import check_condition, asdict, domain_match
 
 
@@ -144,6 +145,6 @@ class KuadrantGateway(KubernetesObject, Gateway):
         }
 
     @property
-    def deployment(self):
+    def deployment(self) -> Deployment:
         """Retrieve the managed deployment resource"""
         return self.cluster.get_deployment(self.service_name)

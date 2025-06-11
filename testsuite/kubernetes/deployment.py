@@ -150,6 +150,12 @@ class Deployment(KubernetesObject):
         )
         assert success, f"Deployment {self.name()} did not get ready in time"
 
+
+    @property
+    def replicas(self):
+        """Set numbers of replicas for the deployment"""
+        return self.model.spec.replicas
+
     @modify
     def set_replicas(self, replicas: int):
         """Set numbers of replicas for the deployment"""
