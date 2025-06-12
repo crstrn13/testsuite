@@ -19,7 +19,7 @@ def rate_limit(blame, gateway, module_label, cluster):
 
 
 # pylint: disable=unused-argument
-def test_scale_gateway(gateway, client, auth, rate_limit, authorization):
+def test_scale_gateway(gateway, client, auth, authorization):
     """This test asserts that the policies are working as expected and this behavior does not change after scaling"""
     responses = client.get_many("/get", 5, auth=auth)
     responses.assert_all(status_code=200)

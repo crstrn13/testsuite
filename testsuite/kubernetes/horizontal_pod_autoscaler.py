@@ -1,3 +1,5 @@
+"""Horizontal Pod Autoscaler related objects"""
+
 from testsuite.kubernetes import KubernetesObject
 from testsuite.kubernetes.deployment import Deployment
 
@@ -16,6 +18,7 @@ class HorizontalPodAutoscaler(KubernetesObject):
         min_replicas: int = 1,
         max_replicas: int = 10,
     ):
+        """Creates new instance of Horizontal Pod Autoscaler"""
         model: dict = {
             "kind": "HorizontalPodAutoscaler",
             "apiVersion": "autoscaling/v2",
@@ -31,8 +34,7 @@ class HorizontalPodAutoscaler(KubernetesObject):
                 },
                 "minReplicas": min_replicas,
                 "maxReplicas": max_replicas,
-                "metrics": metrics
+                "metrics": metrics,
             },
         }
         return cls(model, context=cluster.context)
-
