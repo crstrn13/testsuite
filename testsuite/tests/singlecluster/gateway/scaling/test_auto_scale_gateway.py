@@ -1,5 +1,5 @@
 """
-This module contains tests for auto-scaling the gateway deployment with an HorizontalPodAutoscaler watching the cpu usage
+This module contains tests for auto-scaling the gateway deployment with an HPA watching the cpu usage
 """
 
 import time
