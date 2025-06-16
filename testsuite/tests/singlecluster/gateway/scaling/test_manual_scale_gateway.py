@@ -9,6 +9,8 @@ import pytest
 from testsuite.kuadrant.policy import CelExpression
 from testsuite.kuadrant.policy.rate_limit import RateLimitPolicy, Limit
 
+pytestmark = [pytest.mark.kuadrant_only]
+
 
 @pytest.fixture(scope="module")
 def rate_limit(blame, gateway, module_label, cluster):
@@ -21,6 +23,10 @@ def rate_limit(blame, gateway, module_label, cluster):
 # pylint: disable=unused-argument
 def test_scale_gateway(gateway, client, auth, authorization):
     """This test asserts that the policies are working as expected and this behavior does not change after scaling"""
+    anon_auth_resp = client.get("/get")
+    assert anon_auth_resp is not None
+    assert anon_auth_resp.status_code == 401
+
     responses = client.get_many("/get", 5, auth=auth)
     responses.assert_all(status_code=200)
 
@@ -30,6 +36,10 @@ def test_scale_gateway(gateway, client, auth, authorization):
     gateway.deployment.wait_for_ready()
 
     time.sleep(60)
+
+    anon_auth_resp = client.get("/get")
+    assert anon_auth_resp is not None
+    assert anon_auth_resp.status_code == 401
 
     responses = client.get_many("/get", 5, auth=auth)
     responses.assert_all(status_code=200)
