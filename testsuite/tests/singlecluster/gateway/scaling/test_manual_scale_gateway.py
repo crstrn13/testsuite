@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.kuadrant_only]
 def rate_limit(blame, gateway, module_label, cluster):
     """Add limit to the policy"""
     policy = RateLimitPolicy.create_instance(cluster, blame("rlp"), gateway, labels={"app": module_label})
-    policy.add_limit("basic", [Limit(5, "60s")], counters=[CelExpression("auth.identity.user")])
+    policy.add_limit("basic", [Limit(5, "5s")], counters=[CelExpression("auth.identity.user")])
     return policy
 
 
@@ -35,7 +35,7 @@ def test_scale_gateway(gateway, client, auth, authorization):
     gateway.deployment.set_replicas(2)
     gateway.deployment.wait_for_ready()
 
-    time.sleep(60)
+    time.sleep(5)
 
     anon_auth_resp = client.get("/get")
     assert anon_auth_resp is not None
