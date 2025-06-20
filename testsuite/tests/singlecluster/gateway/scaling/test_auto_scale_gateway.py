@@ -110,7 +110,7 @@ def test_auto_scale_gateway(gateway, client, auth, hpa, load_generator):  # pyli
 
     assert client.get("/get", auth=auth).status_code == 429
 
-    time.sleep(5) # sleep in order to reset the rate limit policy time limit.
+    time.sleep(5)  # sleep in order to reset the rate limit policy time limit.
 
     assert gateway.deployment.replicas > 1
 
