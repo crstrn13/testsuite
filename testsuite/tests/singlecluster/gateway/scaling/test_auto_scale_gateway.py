@@ -95,7 +95,7 @@ def load_generator(request, cluster, blame, api_key, client):
 def rate_limit(blame, gateway, module_label, cluster):
     """Add limit to the policy"""
     policy = RateLimitPolicy.create_instance(cluster, blame("rlp"), gateway, labels={"app": module_label})
-    policy.add_limit("basic", [Limit(5, "60s")], when=[CelPredicate("auth.identity.userid != 'load-generator'")])
+    policy.add_limit("basic", [Limit(5, "5s")], when=[CelPredicate("auth.identity.userid != 'load-generator'")])
     return policy
 
 
@@ -110,7 +110,7 @@ def test_auto_scale_gateway(gateway, client, auth, hpa, load_generator):  # pyli
 
     assert client.get("/get", auth=auth).status_code == 429
 
-    time.sleep(60)
+    time.sleep(5) # sleep in order to reset the rate limit policy time limit.
 
     assert gateway.deployment.replicas > 1
 
