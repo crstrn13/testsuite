@@ -1,6 +1,6 @@
 default:
   dynaconf_merge: true
-  kuadrantctl: "kuadrantctl"
+  kuadrantctl: "/home/cristu/go/bin/kuadrantctl"
   tools:
     project: "tools"
   cfssl: "cfssl"
