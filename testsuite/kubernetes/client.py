@@ -99,10 +99,10 @@ class KubernetesClient:
         with self.context:
             return oc.selector(f"deployment/{name}").object(cls=Deployment)
 
-    def do_action(self, verb: str, *args, auto_raise: bool = True, parse_output: bool = False):
+    def do_action(self, verb: str, *args, stdin_str=None, auto_raise: bool = True, parse_output: bool = False):
         """Run an oc command."""
         with self.context:
-            result = oc.invoke(verb, args, auto_raise=auto_raise)
+            result = oc.invoke(verb, args, stdin_str=stdin_str, auto_raise=auto_raise)
             if parse_output:
                 return oc.APIObject(string_to_model=result.out())
             return result

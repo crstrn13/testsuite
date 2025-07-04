@@ -28,6 +28,15 @@ class CelExpression:
     expression: str
 
 
+def has_observed_generation(observed_generation):
+    """Returns function that asserts whether the object has the expected observedGeneration"""
+
+    def _check(obj):
+        return obj.model.status["observedGeneration"] == observed_generation
+
+    return _check
+
+
 def has_condition(condition_type, status="True", reason=None, message=None):
     """Returns function, that returns True if the Kubernetes object has a specific value"""
 
@@ -64,6 +73,9 @@ class Policy(KubernetesObject):
 
     def wait_for_ready(self):
         """Wait for a Policy to be ready"""
+        self.refresh()
+        success = self.wait_until(has_observed_generation(self.generation))
+        assert success, f"{self.kind()} did not reach observed generation in time"
         self.wait_for_full_enforced()
 
     def wait_for_accepted(self):
@@ -85,3 +97,13 @@ class Policy(KubernetesObject):
             timelimit=timelimit,
         )
         assert success, f"{self.kind()} did not get fully enforced in time"
+
+    @property
+    def generation(self):
+        """Generation property"""
+        return self.model.metadata.generation
+
+    @property
+    def observed_generation(self):
+        """Observed generation property"""
+        return self.model.status.observedGeneration
