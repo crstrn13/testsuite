@@ -166,3 +166,16 @@ def create_api_key(blame, request, cluster):
         return secret
 
     return _create_secret
+
+
+@pytest.fixture(autouse=True)
+def check_upstream_leak(request, client):
+    """Verifies that denied requests did not leak to the upstream.
+    Only runs for tests marked with @pytest.mark.data_plane."""
+    yield
+    if "data_plane" not in [m.name for m in request.node.iter_markers()]:
+        return
+    backend_ms = request.getfixturevalue("backend_mockserver")
+    for request_id in client.denied_request_ids:
+        backend_ms.verify_request_not_received(request_id)
+    client.denied_request_ids.clear()

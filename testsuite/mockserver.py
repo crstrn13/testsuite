@@ -70,8 +70,28 @@ class Mockserver:
         return self.client.mockserver.clear.put(json={"id": expectation_id})
 
     def retrieve_requests(self, expectation_id):
-        """Verify a request has been received a specific number of times"""
+        """Retrieve all requests received for a specific expectation"""
         return self.client.mockserver.retrieve.put(
             params={"type": "REQUESTS", "format": "JSON"},
             json={"path": "/" + expectation_id},
         ).json()
+
+    def retrieve_all_requests(self):
+        """Retrieve all requests received by the mockserver"""
+        return self.client.mockserver.retrieve.put(
+            params={"type": "REQUESTS", "format": "JSON"},
+            json={},
+        ).json()
+
+    def verify_request_not_received(self, request_id, header="x-test-request-id"):
+        """Verify that a request with a specific tracking header did not reach the upstream."""
+        all_requests = self.retrieve_all_requests()
+        received_ids = {
+            req["headers"][header][0]
+            for req in all_requests
+            if header in req.get("headers", {})
+        }
+        assert request_id not in received_ids, (
+            f"Request leaked to upstream: {header} '{request_id}' "
+            f"was found in backend requests"
+        )
