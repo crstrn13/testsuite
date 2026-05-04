@@ -14,7 +14,7 @@ from testsuite.gateway.gateway_api.route import HTTPRoute
 
 from ..conftest import EGRESS_HOSTNAME
 
-pytestmark = [pytest.mark.kuadrant_only, pytest.mark.egress_gateway]
+pytestmark = [pytest.mark.kuadrant_only, pytest.mark.egress_gateway, pytest.mark.data_plane]
 
 
 @pytest.fixture(scope="module")

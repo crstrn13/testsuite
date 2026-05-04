@@ -1,4 +1,4 @@
-.PHONY: commit-acceptance pylint mypy black reformat test authorino poetry poetry-no-dev mgc container-image polish-junit reportportal authorino-standalone limitador kuadrant kuadrant-only disruptive kuadrantctl multicluster ui playwright-install collect
+.PHONY: commit-acceptance pylint mypy black reformat test authorino poetry poetry-no-dev mgc container-image polish-junit reportportal authorino-standalone limitador kuadrant kuadrant-only disruptive kuadrantctl multicluster ui playwright-install collect data-plane data_plane
 
 TB ?= short
 LOGLEVEL ?= INFO
@@ -67,6 +67,9 @@ disruptive: poetry-no-dev  ## Run disruptive tests
 
 egress-gateway: poetry-no-dev  ## Run egress gateway tests
 	$(PYTEST) -n4 -m 'egress_gateway' --dist loadfile --enforce $(flags) testsuite/tests/singlecluster/egress/
+
+data-plane data_plane: poetry-no-dev  ## Run data plane leak detection tests
+	$(PYTEST) -n4 -m 'data_plane' --dist loadfile $(flags) testsuite/tests/singlecluster
 
 kuadrantctl: poetry-no-dev  ## Run Kuadrantctl tests
 	$(PYTEST) -n4 --dist loadfile --enforce $(flags) testsuite/tests/kuadrantctl/
