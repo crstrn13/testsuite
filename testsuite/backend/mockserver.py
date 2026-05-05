@@ -22,6 +22,7 @@ class MockserverBackend(Backend):
             labels={"app": self.label},
             resources=ContainerResources(limits_memory="2G"),
             lifecycle={"postStart": {"exec": {"command": ["/bin/sh", "init-mockserver"]}}},
+            env=self.env,
         )
         self.deployment.commit()
 

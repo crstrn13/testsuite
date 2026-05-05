@@ -1,5 +1,6 @@
 """Common classes for Httpx"""
 
+import os
 import ssl
 import typing
 
@@ -123,6 +124,7 @@ class KuadrantClient(Client):
     ):
         self.files = []
         self.retry_codes = {503} if retry_codes is None else set(retry_codes)
+        self.rejected_request_ids: list[str] = []
         _verify = None
         if isinstance(verify, Certificate):
             verify_file = create_tmp_file(verify.chain)
@@ -169,6 +171,8 @@ class KuadrantClient(Client):
         timeout=None,
         extensions=None,
     ) -> Result:
+        headers = dict(headers) if headers else {}
+        headers.setdefault("Traceparent", f"00-{os.urandom(16).hex()}-{os.urandom(8).hex()}-01")
         try:
             response = super().request(
                 method,
@@ -185,7 +189,12 @@ class KuadrantClient(Client):
                 timeout=timeout,
                 extensions=extensions,
             )
-            return Result(self.retry_codes, response=response)
+            result = Result(self.retry_codes, response=response)
+            if response.status_code in {401, 403, 429}:
+                req_id = response.headers.get("x-request-id")
+                if req_id:
+                    self.rejected_request_ids.append(req_id)
+            return result
         except RequestError as e:
             return Result(self.retry_codes, error=e)
 

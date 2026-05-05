@@ -7,7 +7,7 @@ from time import sleep
 
 import pytest
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 def test_jwt_ttl(client, auth, keycloak, create_jwt_auth, jwt_ttl):

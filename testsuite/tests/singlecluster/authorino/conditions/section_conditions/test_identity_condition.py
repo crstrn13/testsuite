@@ -5,7 +5,7 @@ import pytest
 from testsuite.kuadrant.policy.authorization import Pattern
 from testsuite.httpx.auth import HeaderApiKeyAuth
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="module")

@@ -26,3 +26,7 @@ class TracingClient(abc.ABC):
     def get_traces(self, service: str, tags: Optional[dict[str, str]] = None, min_processes: int = 0) -> list[Any]:
         """Search traces in tracing client by service name and tags.
         If min_processes is set, retries until at least that many service processes are present"""
+
+    @abc.abstractmethod
+    def get_trace(self, trace_id: str, min_processes: int = 0) -> Optional[Any]:
+        """Fetch a single trace by its trace ID"""

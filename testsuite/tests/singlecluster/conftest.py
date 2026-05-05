@@ -1,20 +1,90 @@
 """Configure all the components through Kuadrant,
 all methods are placeholders for now since we do not work with Kuadrant"""
 
+import logging
+
 import pytest
+from dynaconf import ValidationError
 from openshift_client import selector
 
 from testsuite.backend.httpbin import Httpbin
+from testsuite.config import settings
 from testsuite.gateway import GatewayRoute, Gateway, Hostname, GatewayListener
 from testsuite.gateway.envoy import Envoy
 from testsuite.gateway.envoy.route import EnvoyVirtualRoute
 from testsuite.gateway.gateway_api.gateway import KuadrantGateway
 from testsuite.gateway.gateway_api.route import HTTPRoute
+from testsuite.httpx import KuadrantClient
 from testsuite.kuadrant import KuadrantCR
 from testsuite.kuadrant.policy.authorization.auth_policy import AuthPolicy
 from testsuite.kuadrant.policy.rate_limit import RateLimitPolicy
 from testsuite.kubernetes.api_key import APIKey
 from testsuite.kubernetes.client import KubernetesClient
+from testsuite.tracing.jaeger import JaegerClient
+from testsuite.tracing.tempo import RemoteTempoClient
+
+logger = logging.getLogger(__name__)
+
+
+def _get_tracing_client(config):
+    """Get or create a cached tracing client for upstream leak detection"""
+    stash = config.stash
+    key = pytest.StashKey[object]()
+
+    cached = stash.get(key, None)
+    if cached is not None:
+        return cached if cached else None
+
+    try:
+        settings.validators.validate(only=["tracing"])
+        cls = JaegerClient if settings["tracing"]["backend"] == "jaeger" else RemoteTempoClient
+        client = KuadrantClient(verify=False)
+        tracing = cls(settings["tracing"]["collector_url"], settings["tracing"]["query_url"], client)
+        stash[key] = tracing
+        return tracing
+    except (KeyError, ValidationError):
+        logger.debug("Tracing not configured, upstream leak detection disabled")
+        stash[key] = False
+        return None
+
+
+def _check_upstream_leak(client, tracing_client):
+    """Verify rejected requests did not leak to the upstream httpbin backend"""
+    for req_id in getattr(client, "rejected_request_ids", []):
+        traces = tracing_client.get_traces(service="wasm-shim", tags={"request_id": req_id})
+        for trace in traces:
+            services = trace.get_process_services()
+            assert "httpbin" not in services, (
+                f"Upstream leak detected: rejected request {req_id} reached "
+                f"upstream 'httpbin'. Services in trace: {services}"
+            )
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_setup(item):
+    """Clear rejected request tracking for data_plane tests after setup completes"""
+    yield
+    marker = item.get_closest_marker("data_plane")
+    if not marker:
+        return
+    client = item.funcargs.get("client")
+    if client and hasattr(client, "rejected_request_ids"):
+        client.rejected_request_ids.clear()
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_teardown(item, nextitem):  # pylint: disable=unused-argument
+    """Check data_plane tests for upstream leaks via tracing before fixture cleanup"""
+    marker = item.get_closest_marker("data_plane")
+    if marker:
+        client = item.funcargs.get("client")
+        rejected_ids = getattr(client, "rejected_request_ids", []) if client else []
+        if rejected_ids:
+            tracing_client = _get_tracing_client(item.config)
+            if tracing_client:
+                _check_upstream_leak(client, tracing_client)
+
+    yield
 
 
 @pytest.fixture(scope="session")
@@ -83,10 +153,27 @@ def kuadrant(request, system_project):
 
 
 @pytest.fixture(scope="session")
-def backend(request, cluster, blame, label, testconfig):
+def otel_env(testconfig):
+    """Returns OTEL environment variables for backends if tracing is configured"""
+    try:
+        testconfig.validators.validate(only=["tracing"])
+        collector_url = testconfig["tracing"]["collector_url"]
+    except (KeyError, ValidationError):
+        return None
+
+    host = collector_url.split("://")[-1].rsplit(":", 1)[0]
+    return [
+        {"name": "OTEL_TRACING_ENABLED", "value": "true"},
+        {"name": "OTEL_EXPORTER_OTLP_ENDPOINT", "value": f"grpc://{host}:4317"},
+        {"name": "OTEL_EXPORTER_OTLP_INSECURE", "value": "true"},
+    ]
+
+
+@pytest.fixture(scope="session")
+def backend(request, cluster, blame, label, testconfig, otel_env):
     """Deploys Httpbin backend"""
     image = testconfig["httpbin"]["image"]
-    httpbin = Httpbin(cluster, blame("httpbin"), label, image)
+    httpbin = Httpbin(cluster, blame("httpbin"), label, image, env=otel_env)
     request.addfinalizer(httpbin.delete)
     httpbin.commit()
     return httpbin

@@ -10,8 +10,8 @@ from testsuite.kubernetes.service import Service, ServicePort
 class LlmSim(Backend):
     """LlmSim deployed in Kubernetes as Backend"""
 
-    def __init__(self, cluster: KubernetesClient, name, model, label, image, replicas=1) -> None:
-        super().__init__(cluster, name, label)
+    def __init__(self, cluster: KubernetesClient, name, model, label, image, replicas=1, env=None) -> None:
+        super().__init__(cluster, name, label, env=env)
         self.model = model
         self.replicas = replicas
         self.image = image
@@ -27,6 +27,7 @@ class LlmSim(Backend):
             selector=Selector(matchLabels=match_labels),
             labels={"app": self.label},
             command_args=["--model", self.model, "--port", "8080"],
+            env=self.env,
         )
         self.deployment.commit()
         self.deployment.wait_for_ready()

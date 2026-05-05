@@ -4,7 +4,7 @@ import pytest
 from testsuite.kuadrant.policy.authorization import Pattern, Value, ValueFrom
 from testsuite.httpx.auth import HeaderApiKeyAuth, HttpxOidcClientAuth
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="module")

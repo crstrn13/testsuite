@@ -10,6 +10,8 @@ from httpx import Client
 from testsuite.tracing import TracingClient
 from testsuite.tracing.models import Trace
 
+NOT_FOUND = object()
+
 
 class JaegerClient(TracingClient):
     """Tracing client for traces management"""
@@ -56,3 +58,16 @@ class JaegerClient(TracingClient):
 
         # Convert to Trace objects
         return [Trace.from_dict(trace_data) for trace_data in traces_data]
+
+    @backoff.on_predicate(backoff.fibo, lambda x: x is NOT_FOUND, max_tries=7, jitter=None)
+    def get_trace(self, trace_id: str, min_processes: int = 0) -> Optional[Trace]:
+        """Fetch a single trace by its trace ID"""
+        traces_data = self.query.api.traces[trace_id].get().json()["data"]
+        if not traces_data:
+            return NOT_FOUND
+
+        trace_data = traces_data[0]
+        if min_processes and len(trace_data.get("processes", {})) < min_processes:
+            return NOT_FOUND
+
+        return Trace.from_dict(trace_data)

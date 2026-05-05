@@ -4,7 +4,7 @@ import pytest
 
 from testsuite.utils import rego_allow_header
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="module")

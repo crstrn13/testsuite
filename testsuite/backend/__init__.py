@@ -11,10 +11,11 @@ from testsuite.kubernetes.client import KubernetesClient
 class Backend(LifecycleObject, Referencable):
     """Backend (workload) deployed in Kubernetes"""
 
-    def __init__(self, cluster: KubernetesClient, name: str, label: str):
+    def __init__(self, cluster: KubernetesClient, name: str, label: str, env: list[dict[str, str]] = None):
         self.cluster = cluster
         self.name = name
         self.label = label
+        self.env = env
 
         self.deployment = None
         self.service = None

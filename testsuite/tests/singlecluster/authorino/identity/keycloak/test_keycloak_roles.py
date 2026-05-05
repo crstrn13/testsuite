@@ -3,7 +3,7 @@
 import pytest
 from testsuite.httpx.auth import HttpxOidcClientAuth
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="function")

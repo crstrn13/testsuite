@@ -2,7 +2,7 @@
 
 import pytest
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 TEST_AUDIENCES = ["test-aud1", "test-aud2", "test-aud3"]

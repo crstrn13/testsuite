@@ -7,7 +7,7 @@ import pytest
 
 from .conftest import LIMIT
 
-pytestmark = [pytest.mark.limitador]
+pytestmark = [pytest.mark.data_plane, pytest.mark.limitador]
 
 
 basic_request = {

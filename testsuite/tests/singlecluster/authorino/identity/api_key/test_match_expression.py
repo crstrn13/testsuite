@@ -8,7 +8,7 @@ import pytest
 
 from testsuite.kubernetes import Selector, MatchExpression
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="module")

@@ -6,7 +6,7 @@ import pytest
 from testsuite.kuadrant.policy.authorization import ValueFrom
 from testsuite.kubernetes.cluster_role import ClusterRole, Rule
 
-pytestmark = [pytest.mark.authorino]
+pytestmark = [pytest.mark.data_plane, pytest.mark.authorino]
 
 
 @pytest.fixture(scope="module")

@@ -10,8 +10,8 @@ from testsuite.kubernetes.service import Service, ServicePort
 class Httpbin(Backend):
     """Httpbin deployed in Kubernetes as Backend"""
 
-    def __init__(self, cluster: KubernetesClient, name, label, image, replicas=1) -> None:
-        super().__init__(cluster, name, label)
+    def __init__(self, cluster: KubernetesClient, name, label, image, replicas=1, env=None) -> None:
+        super().__init__(cluster, name, label, env=env)
         self.replicas = replicas
         self.image = image
 
@@ -25,6 +25,7 @@ class Httpbin(Backend):
             ports={"api": 8080},
             selector=Selector(matchLabels=match_labels),
             labels={"app": self.label},
+            env=self.env,
         )
         self.deployment.commit()
         self.deployment.wait_for_ready()
