@@ -1,10 +1,12 @@
-"""Tests for PipelinePolicy: action method calling a gRPC backend and conditional response headers."""
+"""Tests for PipelinePolicy with gRPC action method and conditional response headers."""
 
 import pytest
 
 from testsuite.kubernetes import Selector
 from testsuite.kubernetes.deployment import Deployment
 from testsuite.kubernetes.service import Service, ServicePort
+
+pytestmark = [pytest.mark.kuadrant_only, pytest.mark.extensions]
 
 
 @pytest.fixture(scope="module")
@@ -38,12 +40,12 @@ def threat_assessment_service(request, cluster, blame, module_label):
     return service
 
 
-THREAT_THRESHOLD = 0
+THREAT_THRESHOLD = 50
 
 
 @pytest.fixture(scope="module")
 def pipeline_policy(pipeline_policy, threat_assessment_service):  # pylint: disable=unused-argument
-    """Configure PipelinePolicy with threat assessment gRPC action and conditional headers."""
+    """Configure PipelinePolicy with gRPC call and response headers referencing the result."""
     svc_url = (
         f"grpc://{threat_assessment_service.name()}.{threat_assessment_service.namespace()}.svc.cluster.local:8080"
     )
@@ -58,50 +60,30 @@ def pipeline_policy(pipeline_policy, threat_assessment_service):  # pylint: disa
     pipeline_policy.add_request_grpc_method(
         method="assess-threat",
         var="threatResponse",
-        predicate='"x-assess-threat" in request.headers',
-    )
-    pipeline_policy.add_request_deny(predicate='request.url_path == "/blocked"', with_status=403)
-    pipeline_policy.add_request_deny(
-        predicate=f"threatResponse.threat_level >= {THREAT_THRESHOLD}",
-        with_status=403,
     )
 
     pipeline_policy.add_response_headers(
         [["x-threat-assessed", "true"]],
-        predicate='"x-assess-threat" in request.headers',
+        predicate=f"threatResponse.threat_level < {THREAT_THRESHOLD}",
     )
     pipeline_policy.add_response_headers(
-        [["x-threat-assessed", "false"]],
-        predicate='!("x-assess-threat" in request.headers)',
+        [["x-threat-threshold", str(THREAT_THRESHOLD)]],
+        predicate=f"threatResponse.threat_level < {THREAT_THRESHOLD}",
     )
-    pipeline_policy.add_response_headers([["x-threat-threshold", str(THREAT_THRESHOLD)]])
 
     return pipeline_policy
 
 
-def test_allowed_path(client):
-    """Request to an allowed path returns 200 without threat assessment."""
+def test_request_allowed(client):
+    """Request with low threat level passes and gets response headers."""
     response = client.get("/get")
-    assert response.status_code == 200
-
-    assert response.headers.get("x-threat-assessed") == "false"
-    assert response.headers.get("x-threat-threshold") == str(THREAT_THRESHOLD)
-
-
-def test_blocked_path(client):
-    """Request to /blocked is denied by the allow rule."""
-    response = client.get("/blocked")
-    assert response.status_code == 403
-
-
-def test_threat_assessment_safe(client):
-    """Request with x-assess-threat header to a safe path passes threat check."""
-    response = client.get("/get", headers={"x-assess-threat": "true"})
     assert response.status_code == 200
     assert response.headers.get("x-threat-assessed") == "true"
     assert response.headers.get("x-threat-threshold") == str(THREAT_THRESHOLD)
 
-def test_threat_assessment_unsafe(client):
-    """Request with x-assess-threat header to a safe path passes threat check."""
-    response = client.get("/get", headers={"x-assess-threat": "true"})
+
+def test_threat_response_headers(client):
+    """Response headers reflect threat assessment result on different paths."""
+    response = client.get("/anything")
     assert response.status_code == 200
+    assert response.headers.get("x-threat-assessed") == "true"

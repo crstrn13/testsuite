@@ -10,15 +10,6 @@ from testsuite.kuadrant.policy import has_condition
 
 pytestmark = [pytest.mark.kuadrant_only, pytest.mark.extensions]
 
-
-@pytest.fixture(scope="module", autouse=True)
-def commit(request, authorization):
-    """Only commit authorization; each test creates its own policy with bad configuration."""
-    request.addfinalizer(authorization.delete)
-    authorization.commit()
-    authorization.wait_for_ready()
-
-
 @pytest.fixture(scope="module")
 def threat_assessment_service(request, cluster, blame, module_label):
     """Deploys the ThreatAssessmentService gRPC backend"""
