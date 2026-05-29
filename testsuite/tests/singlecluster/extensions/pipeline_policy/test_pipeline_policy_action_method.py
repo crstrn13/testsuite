@@ -38,7 +38,7 @@ def threat_assessment_service(request, cluster, blame, module_label):
     return service
 
 
-THREAT_THRESHOLD = 0
+THREAT_THRESHOLD = 1
 
 
 @pytest.fixture(scope="module")
@@ -60,10 +60,11 @@ def pipeline_policy(pipeline_policy, threat_assessment_service):  # pylint: disa
         var="threatResponse",
         predicate='"x-assess-threat" in request.headers',
     )
-    pipeline_policy.add_request_deny(predicate='request.url_path == "/blocked"', with_status=403)
     pipeline_policy.add_request_deny(
         predicate=f"threatResponse.threat_level >= {THREAT_THRESHOLD}",
         with_status=403,
+        with_headers=f'[["x-threat-assessed", "true"], ["x-threat-threshold", "{THREAT_THRESHOLD}"]]',
+        with_body=f"Threat level {{threatResponse.threat_level}} exceeds threshold of {THREAT_THRESHOLD}"
     )
 
     pipeline_policy.add_response_headers(
@@ -88,12 +89,6 @@ def test_allowed_path(client):
     assert response.headers.get("x-threat-threshold") == str(THREAT_THRESHOLD)
 
 
-def test_blocked_path(client):
-    """Request to /blocked is denied by the allow rule."""
-    response = client.get("/blocked")
-    assert response.status_code == 403
-
-
 def test_threat_assessment_safe(client):
     """Request with x-assess-threat header to a safe path passes threat check."""
     response = client.get("/get", headers={"x-assess-threat": "true"})
@@ -101,7 +96,11 @@ def test_threat_assessment_safe(client):
     assert response.headers.get("x-threat-assessed") == "true"
     assert response.headers.get("x-threat-threshold") == str(THREAT_THRESHOLD)
 
+
 def test_threat_assessment_unsafe(client):
-    """Request with x-assess-threat header to a safe path passes threat check."""
-    response = client.get("/get", headers={"x-assess-threat": "true"})
-    assert response.status_code == 200
+    """Request to an unsafe path is denied with threat assessment headers in the deny response."""
+    response = client.get("/admin", headers={"x-assess-threat": "true"})
+    assert response.status_code == 403
+    assert response.headers.get("x-threat-assessed") == "true"
+    assert response.headers.get("x-threat-threshold") == str(THREAT_THRESHOLD)
+    assert response.content.decode() == f"Threat level 5 exceeds threshold of {THREAT_THRESHOLD}"

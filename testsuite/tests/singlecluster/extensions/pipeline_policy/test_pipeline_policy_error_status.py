@@ -10,6 +10,7 @@ from testsuite.kuadrant.policy import has_condition
 
 pytestmark = [pytest.mark.kuadrant_only, pytest.mark.extensions]
 
+
 @pytest.fixture(scope="module")
 def threat_assessment_service(request, cluster, blame, module_label):
     """Deploys the ThreatAssessmentService gRPC backend"""
@@ -114,3 +115,17 @@ def test_wrong_method_name(request, cluster, blame, route, threat_assessment_ser
         has_condition("Accepted", "False", "Unknown"),
         timelimit=60,
     ), f"Policy did not reach expected error status, instead: {policy.refresh().model.status.conditions}"
+
+
+def test_toplevel_fail_not_accepted(request, cluster, blame, route):
+    """PipelinePolicy should not be accepted when fail action has no gRPC variable reference."""
+    policy = PipelinePolicy.create_instance(cluster, blame("top-fail"), route)
+    policy.add_request_fail("blocked by fail", predicate='request.url_path == "/fail"')
+
+    request.addfinalizer(policy.delete)
+    policy.commit()
+
+    assert policy.wait_until(
+        has_condition("Accepted", "False", "Unknown"),
+        timelimit=60,
+    ), f"Policy should not be accepted with top-level fail, instead: {policy.refresh().model.status.conditions}"
